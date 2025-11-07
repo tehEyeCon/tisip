@@ -11,6 +11,8 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      WORKDIR: "./projects/rg"
 
     steps:
       - name: Checkout
@@ -24,8 +26,8 @@ jobs:
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Export arm environment variables
@@ -34,6 +36,20 @@ jobs:
           echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
           echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
           echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+
+      - name: Load vars from Key Vault
+        env:
+          KV: ${{ secrets.AZURE_KEYVAULT_NAME }}
+        run: |
+          set -euo pipefail
+          echo "Henter secrets fra Key Vault: $KV"
+          RG_NAME=$(az keyvault secret show --vault-name "$KV" --name "rg-name" --query value -o tsv)
+          LOCATION=$(az keyvault secret show --vault-name "$KV" --name "location" --query value -o tsv)
+          {
+            echo "TF_VAR_rg_name=$RG_NAME"
+            echo "TF_VAR_location=$LOCATION"
+          } >> $GITHUB_ENV
+        
 
       - name: Terraform Init (remote backend)
         working-directory: ./projects/rg
@@ -48,9 +64,9 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ./projects/rg
-        run: terraform plan -input=false -var="rg_name=rg-demo123" -var="location=westeurope"
+        run: terraform plan -input=false
 
       - name: Terraform Apply (only on main)
         if: github.ref == 'refs/heads/main'
         working-directory: ./projects/rg
-        run: terraform apply -auto-approve -input=false -var="rg_name=rg-demo123" -var="location=westeurope"
+        run: terraform apply -auto-approve -input=false
