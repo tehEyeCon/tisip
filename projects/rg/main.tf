@@ -26,6 +26,6 @@ provider "azurerm" {
 
 #create resource group
 resource "azurerm_resource_group" "main" {
-  name     = "rg-test-sindre123"
+  name     = var.rg_name
   location = var.location
 }
