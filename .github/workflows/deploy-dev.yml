@@ -1,0 +1,99 @@
+name: "deploy to dev environment"
+
+on:
+  push:
+    branches: (main)
+    paths:
+      - 'environments/dev/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      WORKDIR: "./environments/dev/"
+      TF_INPUT: "false"
+      TFK_IN_AUTOMATION: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.x
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export arm environment variables
+        run: |
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+
+      - name: Create dev.tfvars
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          cat > dev.tfvars <<EOF
+          rg_name = "rg-webapp-dev"
+          location = "westeurope"
+          app_name = "webapp-dev-sindre123"
+          sku_name = "B1"
+          tags = {
+            environment = "dev"
+            owner       = "sindre"
+            app = "demo-webapp-sindre"
+          }
+          EOF       
+          
+        env:
+          KV: ${{ secrets.AZURE_KEYVAULT_NAME }}
+        run: |
+          set -euo pipefail
+          echo "Henter secrets fra Key Vault: $KV"
+          RG_NAME=$(az keyvault secret show --vault-name "$KV" --name "rg-name" --query value -o tsv)
+          LOCATION=$(az keyvault secret show --vault-name "$KV" --name "location" --query value -o tsv)
+          {
+            echo "TF_VAR_rg_name=$RG_NAME"
+            echo "TF_VAR_location=$LOCATION"
+          } >> $GITHUB_ENV
+        
+
+      - name: Terraform Init (remote backend)
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform init -reconfigure -input=false \
+            -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
+            -backend-config="key=projects/webapp/dev/rg/dev.tfstate"
+
+      - name: Terraform Validate
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ${{ env.WORKDIR }}
+        run: terraform plan \
+          -var-file="dev.tfvars" \
+          -input=false \
+          -out=tfplan \
+          -no -color
+
+      - name: Terraform Apply (only on main)
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform apply \
+          -input=false \
+          -auto-approve \
+          tfplan \
+          -no-color
