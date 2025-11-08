@@ -55,7 +55,7 @@ jobs:
       - name: Terraform Init (remote backend)
         working-directory: ${{ env.WORKDIR }}
         run: |
-          terraform init -input=false
+          terraform init -reconfigure -input=false \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
             -backend-config="key=projects/env/dev/rg/dev.tfstate"
 
