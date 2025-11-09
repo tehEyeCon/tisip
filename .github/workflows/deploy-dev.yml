@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'environments/dev/**'
+      - "environments/dev/**"
   workflow_dispatch: {}
 
 permissions:
@@ -57,8 +57,8 @@ jobs:
             owner       = "sindre"
             app = "demo-webapp-sindre"
           }
-          EOF       
-        
+          EOF
+
       - name: Load vars from Key Vault
         env:
           KV: ${{ secrets.AZURE_KEYVAULT_NAME }}
@@ -71,12 +71,14 @@ jobs:
             echo "TF_VAR_rg_name=$RG_NAME"
             echo "TF_VAR_location=$LOCATION"
           } >> $GITHUB_ENV
-        
 
       - name: Terraform Init (remote backend)
-        working-directory: ${{ env.WORKDIR }}
-        run: |
-          terraform init -reconfigure -input=false \-backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" -backend-config="key=environments/dev/dev.tfstate"
+         working-directory: ${{ env.WORKDIR }} # environments/dev
+        run: >
+          terraform init -reconfigure -input=false
+          -backend-config="${{ github.workspace }}/shared/backend.hcl"
+          -backend-config="key=environments/dev/dev.tfstate"
+
 
       - name: Terraform Validate
         working-directory: ${{ env.WORKDIR }}
