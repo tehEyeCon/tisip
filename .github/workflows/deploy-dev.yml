@@ -90,7 +90,7 @@ jobs:
           -var-file="dev.tfvars" \
           -input=false \
           -out=tfplan \
-          -no -color
+          -no-color
 
       - name: Terraform Apply (only on main)
         working-directory: ${{ env.WORKDIR }}
