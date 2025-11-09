@@ -86,17 +86,18 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ env.WORKDIR }}
-        run: terraform plan \
-          -var-file="dev.tfvars" \
-          -input=false \
-          -out=tfplan \
+        run: >
+          terraform plan
+          -var-file="dev.tfvars"
+          -input=false
+          -out=tfplan
           -no-color
 
       - name: Terraform Apply (only on main)
         working-directory: ${{ env.WORKDIR }}
-        run: |
-          terraform apply \
-          -input=false \
-          -auto-approve \
-          tfplan \
+        run: >
+          terraform apply
+          -input=false
+          -auto-approve
+          tfplan
           -no-color
