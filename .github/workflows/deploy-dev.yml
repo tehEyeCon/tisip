@@ -2,7 +2,8 @@ name: "deploy to dev environment"
 
 on:
   push:
-    branches: (main)
+    branches:
+      - main
     paths:
       - 'environments/dev/**'
   workflow_dispatch: {}
