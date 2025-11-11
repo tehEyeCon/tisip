@@ -5,7 +5,7 @@ on:
     branches: 
       - main
     paths:
-      - "simple-terraform/**"
+      - "modul8/simple-terraform/**"
 
 permissions:
   id-token: write
