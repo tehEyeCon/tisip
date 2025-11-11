@@ -30,5 +30,5 @@ variable "tenant_id" {
   description = "The Tenant ID for the Azure provider"
   type        = string
   default     = "6980af2f-acfc-4513-ac50-552bcfdb01a0"
-  
+
 }
