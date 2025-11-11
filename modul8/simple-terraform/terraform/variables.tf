@@ -1,7 +1,7 @@
 variable "environment" {
   description = "Environment name (dev, test, prod)"
   type        = string
-  
+
   validation {
     condition     = contains(["dev", "test", "prod"], var.environment)
     error_message = "Environment must be dev, test, or prod."
@@ -18,4 +18,14 @@ variable "project_name" {
   description = "Project name used in resource naming"
   type        = string
   default     = "demo"
+}
+
+variable "subscription_id" {
+  description = "Azure Subscription ID"
+  type        = string
+}
+
+variable "tenant_id" {
+  description = "Azure Tenant ID"
+  type        = string
 }

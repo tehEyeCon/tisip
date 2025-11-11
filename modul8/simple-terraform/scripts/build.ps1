@@ -29,19 +29,26 @@ Set-Location ..
 Write-Host "✅ Validation complete!" -ForegroundColor Green
 Write-Host ""
 
-# Create artifact
-Write-Host "2️⃣ Creating artifact..." -ForegroundColor Yellow
-$ARTIFACT_NAME = "terraform-$VERSION.tar.gz"
+# --- Create artifact (tar.gz) ---
+# $PSScriptRoot peker på mappen der skriptet ligger: ...\scripts
+$ScriptDir = $PSScriptRoot
+$RepoRoot  = (Resolve-Path (Join-Path $ScriptDir '..')).Path   # én nivå opp = repo-roten
 
-tar -czf $ARTIFACT_NAME terraform/ environments/ backend-configs/
+$ArtifactName = "terraform-$VERSION.tar.gz"
+$ArtifactPath = Join-Path $RepoRoot $ArtifactName
 
-Write-Host "✅ Artifact created: $ARTIFACT_NAME" -ForegroundColor Green
-Write-Host ""
+# Sjekk at mapper finnes i repo-roten
+$required = @('terraform','environments','backend-configs') |
+  ForEach-Object { Join-Path $RepoRoot $_ }
+$missing = $required | Where-Object { -not (Test-Path $_) }
+if ($missing) { throw "Missing folders: $($missing -join ', ')" }
 
-# Show artifact info
-Write-Host "📊 Artifact Information:" -ForegroundColor Cyan
-Get-Item $ARTIFACT_NAME | Select-Object Name, Length, LastWriteTime
-Write-Host ""
-Write-Host "🎯 Next steps:" -ForegroundColor Yellow
-Write-Host "  - Deploy to dev:  .\scripts\deploy.ps1 dev $ARTIFACT_NAME"
-Write-Host "  - Deploy to test: .\scripts\deploy.ps1 test $ARTIFACT_NAME"
+# Pakk fra repo-roten (-C) og ta med riktige mapper
+tar -czf $ArtifactPath -C $RepoRoot terraform environments backend-configs
+
+# Verifiser innhold
+$entries = tar -tf $ArtifactPath
+if (-not $entries -or $entries.Count -eq 0) { throw "Artifact is empty." }
+
+Write-Host "✅ Artifact created: $ArtifactPath" -ForegroundColor Green
+
