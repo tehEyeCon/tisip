@@ -75,7 +75,7 @@ jobs:
     needs: validate
     environment: ${{ matrix.environment }}
     env:
-      WORKDIR: "simple-terraform"
+      WORKDIR: "modul8/simple-terraform"
       BACKEND_HCL: "modul8/simple-terraform/shared/backend.hcl"
       TF_INPUT: "false"
       TF_IN_AUTOMATION: "true"
